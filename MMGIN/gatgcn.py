@@ -57,11 +57,6 @@ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 使用GPU编号，可以根据需要更改
 
 
-# # Hyperparamters
-
-# In[8]:
-
-
 file_path = "./"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -262,26 +257,8 @@ class Ranger(Optimizer):
 
         return loss
 
-
-# # Data
-
-# In[11]:
-
-
-
-
-# # Preprocess
-
-# In[12]:
-
-
-
-# In[105]:
-
-
 class DDIDataset(Dataset):
     def __init__(self, x, y_multi,y_binary):
-        print('pppppppppppppppppppp')
         self.len = len(x)
         self.x_data=x
         self.y_multi_data=y_multi
@@ -382,13 +359,8 @@ class MultiTaskModel(nn.Module):
         fpn_out = self.fc1(fp_list)
         fpn_out = self.act_func(fpn_out)
         fpn_out = self.fc2(fpn_out)
-        # fpn_out = self.dropout(fpn_out)
         fpn_out = self.act_func(fpn_out)
 
-        # concat
-
-        # print('x_shape',x.shape)
-        # print('fpn_out shape',fpn_out.shape)
         xc = torch.cat((x, fpn_out), dim=1)
 
         # 多分类任务的预测
@@ -429,20 +401,12 @@ class BinaryClassLoss(nn.Module):
     def forward(self, pred, target):
 
         target = target.view(-1, 1)
-        # pred是模型的输出，通常是经过Sigmoid函数的结果
-        # target是二分类任务的真实标签，通常是0或1
         criterion = nn.BCELoss()
         loss = criterion(pred, target.float())  # 将target转换为浮点数
         return loss
 
-# # Training
-
-# In[ ]:
-
 
 from torch.optim.lr_scheduler import CosineAnnealingLR
-
-#没有数据增强
 train_epochs_loss = []
 valid_epochs_loss = []
 def val():
@@ -450,24 +414,16 @@ def val():
     TEST_BATCH_SIZE = 128
     epochs=300
     model=MultiTaskModel(label_num_multi,label_num_binary)
-    # optimizer=optim.SGD(model.parameters(),lr=1,momentum=0.8)
     optimizer = Ranger(model.parameters(), lr=learn_rating, weight_decay=weight_decay_rate, betas=(0.95, 0.999),eps=1e-6)
     train_data = TestbedDataset(root='./feng/train/', path='train_graph_dataset.csv')
     test_data = TestbedDataset(root='./feng/test/', path='test_graph_dataset.csv')
     train_loader = DataLoader(train_data, batch_size=TRAIN_BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=TEST_BATCH_SIZE, shuffle=False)
-    print('train_data', train_data)
-    print('train_data_len', len(train_data))
-    print('test_data', test_data)
-    print('test_data_len', len(test_data))
-
     result_all,result_eve=train_fn(model,optimizer,train_loader,test_loader,epochs)
     return result_all,result_eve
 
 
 def train_fn(model,optimizer,train_loader,test_loader,epochs):
-
-    # optimizer = optim.SGD(model.parameters(), lr=1, momentum=0.7)  # momentum：冲量
     model = model.to(device)
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-3)
     my_loss_multi = MultiClassLoss()
@@ -481,16 +437,12 @@ def train_fn(model,optimizer,train_loader,test_loader,epochs):
     y_pred_multi = np.array([])
     y_pred_bin=np.array([])
     for epoch in range(epochs):
-        # print('epoch:',epoch)
         running_loss = 0.0
         model.train()
         for i,batch_data in enumerate(train_loader):
             batch_data = batch_data.to(device)
-            # print('batch_data',batch_data)
             outputs_multi_train, outputs_bin_train = model(batch_data)
-            # print(data.y_multi.view(-1,1))
             label_multi_train=batch_data.y_multi
-            # print('label_multi_train',label_multi_train.shape)
             label_bin_train = batch_data.y_bin
             # 计算多分类任务的损失
             loss_multi = my_loss_multi(outputs_multi_train, label_multi_train)
@@ -535,7 +487,6 @@ def train_fn(model,optimizer,train_loader,test_loader,epochs):
         for i, batch_data in enumerate(test_loader):
             batch_data = batch_data.to(device)
             outputs_multi, outputs_bin = model(batch_data)
-            # print(data.y_multi.view(-1,1))
             label_multi_test=batch_data.y_multi
             label_bin_test=batch_data.y_bin
             pre_score_multi = np.vstack((pre_score_multi, F.softmax(outputs_multi).cpu().numpy()))
@@ -569,22 +520,17 @@ def train_fn(model,optimizer,train_loader,test_loader,epochs):
     return result_all,result_eve
 
 
-# ## Evaluation fn
-
-# In[ ]:
-
-# ## start training
-def roc_aupr_score(y_true, y_score, average="macro"):  # y_true  形状为(n_samples,n_classes)二维数组 样本数 类别书 二进制编码表示  y_score形状为(n_samples,n_classes)二维数组 表示预测的概率分数
-    def _binary_roc_aupr_score(y_true, y_score):  # macro 每个类别的分数平均值
+def roc_aupr_score(y_true, y_score, average="macro"):
+    def _binary_roc_aupr_score(y_true, y_score):
         precision, recall, pr_thresholds = precision_recall_curve(y_true, y_score)
         return auc(recall, precision)
 
     def _average_binary_score(
             binary_metric, y_true, y_score, average
     ):  # y_true= y_one_hot
-        if average == "binary":  # 仅对于二元分类问题
+        if average == "binary":
             return binary_metric(y_true, y_score)
-        if average == "micro":  # 所有样本的总分数
+        if average == "micro":
             y_true = y_true.ravel()
             y_score = y_score.ravel()
         if y_true.ndim == 1:
@@ -677,7 +623,6 @@ def save_result(result_type, result):
 if __name__ == '__main__':
 
     result_all,result_eve=val()
-    print('*****************')
     save_result('all',result_all)
     save_result('each',result_eve)
     index = ['accuracy', 'aupr_micro', 'aupr_macro', 'auc_micro', 'auc_macro', 'f1_micro', 'f1_macro',
