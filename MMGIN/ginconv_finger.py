@@ -57,11 +57,6 @@ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 使用GPU编号，可以根据需要更改
 
 
-# # Hyperparamters
-
-# In[8]:
-
-
 file_path = "./"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -72,9 +67,6 @@ patience = 7
 delta = 0
 label_num_multi = 5
 label_num_binary = 1
-# ### Early stopping
-
-# In[9]:
 
 
 class EarlyStopping:
@@ -263,25 +255,9 @@ class Ranger(Optimizer):
         return loss
 
 
-# # Data
-
-# In[11]:
-
-
-
-
-# # Preprocess
-
-# In[12]:
-
-
-
-# In[105]:
-
 
 class DDIDataset(Dataset):
     def __init__(self, x, y_multi,y_binary):
-        print('pppppppppppppppppppp')
         self.len = len(x)
         self.x_data=x
         self.y_multi_data=y_multi
@@ -293,41 +269,13 @@ class DDIDataset(Dataset):
         return self.len
 
 
-
-
-import torch.nn as nn
-
-
 class MultiTaskModel(nn.Module):
     def __init__(self, num_classes_multi, num_classes_binary):
         super(MultiTaskModel, self).__init__()
-        # num_features_xd = 78
-        # dropout = 0.2
-        # dim = 256
-        # dim1= 512
-        # dim2 = 256
-        # self.dropout = nn.Dropout(dropout)
-        # self.relu = nn.ReLU()
-        # # convolution layers
-        # nn1 = Sequential(Linear(num_features_xd, dim), ReLU(), Linear(dim, dim1))
-        # self.conv1 = GINConv(nn1)
-        # self.bn1 = torch.nn.BatchNorm1d(dim1)
-        #
-        # nn2 = Sequential(Linear(dim1, dim1), ReLU(), Linear(dim1, dim1))
-        # self.conv2 = GINConv(nn2)
-        # self.bn2 = torch.nn.BatchNorm1d(dim1)
-        #
-        # nn3 = Sequential(Linear(dim1, dim1), ReLU(), Linear(dim1, dim1))
-        # self.conv3 = GINConv(nn3)
-        # self.bn3 = torch.nn.BatchNorm1d(dim1)
-        #
-        # self.fc_1 = Linear(dim1, dim2)
-
+       
         self.fp_1_dim = 1024
         self.fp_2_dim = 128
         self.fp_3_dim = 256
-        # self.dropout_fpn = 0.2
-        # self.hidden_dim = 512
         self.fp_type = 'mixed'
 
         if self.fp_type == 'mixed':
@@ -367,18 +315,6 @@ class MultiTaskModel(nn.Module):
     def forward(self, data):
         x, finger, edge_index, batch = data.x,data.finger, data.edge_index, data.batch
 
-        # x = F.relu(self.conv1(x, edge_index))
-        # x = self.bn1(x)
-        # x = F.relu(self.conv2(x, edge_index))
-        # x = self.bn2(x)
-        # x = F.relu(self.conv3(x, edge_index))
-        # x = self.bn3(x)
-        #
-        #
-        # x = global_add_pool(x,batch)
-        # x = F.relu(self.fc_1(x))
-        # x = F.dropout(x, p=0.2, training=self.training)
-
         fp_list = []
         for i, one in enumerate(finger):
             fp = []
@@ -398,12 +334,8 @@ class MultiTaskModel(nn.Module):
         fpn_out = self.fc1(fp_list)
         fpn_out = self.act_func(fpn_out)
         fpn_out = self.fc2(fpn_out)
-        # fpn_out = self.dropout(fpn_out)
         fpn_out = self.act_func(fpn_out)
 
-        # concat
-
-        # xc = torch.cat((x, fpn_out), dim=1)
         xc=fpn_out
         # 多分类任务的预测
         y_multi = self.fc_multi(xc)
@@ -443,20 +375,13 @@ class BinaryClassLoss(nn.Module):
     def forward(self, pred, target):
 
         target = target.view(-1, 1)
-        # pred是模型的输出，通常是经过Sigmoid函数的结果
-        # target是二分类任务的真实标签，通常是0或1
         criterion = nn.BCELoss()
-        loss = criterion(pred, target.float())  # 将target转换为浮点数
+        loss = criterion(pred, target.float())
         return loss
-
-# # Training
-
-# In[ ]:
 
 
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-#没有数据增强
 train_epochs_loss = []
 valid_epochs_loss = []
 def val():
@@ -464,24 +389,17 @@ def val():
     TEST_BATCH_SIZE = 128
     epochs=300
     model=MultiTaskModel(label_num_multi,label_num_binary)
-    # optimizer=optim.SGD(model.parameters(),lr=1,momentum=0.8)
     optimizer = Ranger(model.parameters(), lr=learn_rating, weight_decay=weight_decay_rate, betas=(0.95, 0.999),eps=1e-6)
     train_data = TestbedDataset(root='./feng/train/', path='train_graph_dataset.csv')
     test_data = TestbedDataset(root='./feng/test/', path='test_graph_dataset.csv')
     train_loader = DataLoader(train_data, batch_size=TRAIN_BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=TEST_BATCH_SIZE, shuffle=False)
-    print('train_data', train_data)
-    print('train_data_len', len(train_data))
-    print('test_data', test_data)
-    print('test_data_len', len(test_data))
 
     result_all,result_eve=train_fn(model,optimizer,train_loader,test_loader,epochs)
     return result_all,result_eve
 
 
 def train_fn(model,optimizer,train_loader,test_loader,epochs):
-
-    # optimizer = optim.SGD(model.parameters(), lr=1, momentum=0.7)  # momentum：冲量
     model = model.to(device)
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-3)
     my_loss_multi = MultiClassLoss()
@@ -495,16 +413,12 @@ def train_fn(model,optimizer,train_loader,test_loader,epochs):
     y_pred_multi = np.array([])
     y_pred_bin=np.array([])
     for epoch in range(epochs):
-        # print('epoch:',epoch)
         running_loss = 0.0
         model.train()
         for i,batch_data in enumerate(train_loader):
             batch_data = batch_data.to(device)
-            # print('batch_data',batch_data)
             outputs_multi_train, outputs_bin_train = model(batch_data)
-            # print(data.y_multi.view(-1,1))
             label_multi_train=batch_data.y_multi
-            # print('label_multi_train',label_multi_train.shape)
             label_bin_train = batch_data.y_bin
             # 计算多分类任务的损失
             loss_multi = my_loss_multi(outputs_multi_train, label_multi_train)
@@ -522,7 +436,6 @@ def train_fn(model,optimizer,train_loader,test_loader,epochs):
             for i,batch_data in enumerate(test_loader):
                 batch_data = batch_data.to(device)
                 outputs_multi_test, outputs_bin_test = model(batch_data)
-                # print(data.y_multi.view(-1,1))
                 label_multi_test = batch_data.y_multi
                 label_bin_test = batch_data.y_bin
                 loss_multi = my_loss_multi(outputs_multi_test, label_multi_test)
@@ -549,7 +462,6 @@ def train_fn(model,optimizer,train_loader,test_loader,epochs):
         for i, batch_data in enumerate(test_loader):
             batch_data = batch_data.to(device)
             outputs_multi, outputs_bin = model(batch_data)
-            # print(data.y_multi.view(-1,1))
             label_multi_test=batch_data.y_multi
             label_bin_test=batch_data.y_bin
             pre_score_multi = np.vstack((pre_score_multi, F.softmax(outputs_multi).cpu().numpy()))
@@ -693,7 +605,6 @@ def save_result(result_type, result):
 if __name__ == '__main__':
 
     result_all,result_eve=val()
-    print('*****************')
     save_result('all',result_all)
     save_result('each',result_eve)
     index = ['accuracy', 'aupr_micro', 'aupr_macro', 'auc_micro', 'auc_macro', 'f1_micro', 'f1_macro',
