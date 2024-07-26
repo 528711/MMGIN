@@ -266,8 +266,6 @@ def save_result(result_type, result):
 if __name__ == '__main__':
 
     result_all,result_eve=val()
-    val()
-    print('*****************')
     save_result('all',result_all)
     save_result('each',result_eve)
     index = ['accuracy', 'aupr_micro', 'aupr_macro', 'auc_micro', 'auc_macro', 'f1_micro', 'f1_macro',
