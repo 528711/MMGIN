@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # # Import
 from chemprop.features import morgan_binary_features_generator
-# In[7]:
 
 
 from numpy.random import seed
@@ -57,10 +56,6 @@ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 使用GPU编号，可以根据需要更改
 
 
-# # Hyperparamters
-
-# In[8]:
-
 
 file_path = "./"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -73,8 +68,6 @@ delta = 0
 label_num_multi = 5
 label_num_binary = 1
 # ### Early stopping
-
-# In[9]:
 
 
 class EarlyStopping:
@@ -263,22 +256,6 @@ class Ranger(Optimizer):
         return loss
 
 
-# # Data
-
-# In[11]:
-
-
-
-
-# # Preprocess
-
-# In[12]:
-
-
-
-# In[105]:
-
-
 class DDIDataset(Dataset):
     def __init__(self, x, y_multi,y_binary):
         print('pppppppppppppppppppp')
@@ -291,8 +268,6 @@ class DDIDataset(Dataset):
 
     def __len__(self):
         return self.len
-
-
 
 
 import torch.nn as nn
@@ -343,7 +318,6 @@ class MultiTaskModel(nn.Module):
         self.fc2 = nn.Linear(self.fp_2_dim, self.fp_3_dim)
         self.act_func = nn.ReLU()
 
-        # 二分类任务的输出层
         self.fc_binary = nn.Sequential(
             nn.Linear(512, 256),
             nn.ReLU(),
@@ -389,15 +363,9 @@ class MultiTaskModel(nn.Module):
         fpn_out = self.fc1(fp_list)
         fpn_out = self.act_func(fpn_out)
         fpn_out = self.fc2(fpn_out)
-        # fpn_out = self.dropout(fpn_out)
         fpn_out = self.act_func(fpn_out)
 
-        # concat
-        #
-        # print('x_shape',x.shape)
-        # print('fpn_out shape',fpn_out.shape)
         xc = torch.cat((x, fpn_out), dim=1)
-
 
         # 二分类任务的预测
         y_binary = self.fc_binary(xc)
@@ -406,26 +374,6 @@ class MultiTaskModel(nn.Module):
         return y_binary
 
 
-# class MultiClassLoss(nn.Module):
-#     def __init__(self, gamma=2):
-#         super(MultiClassLoss, self).__init__()
-#         self.gamma = gamma
-#
-#     def forward(self, preds, labels):
-#         labels = labels.view(-1, 1).type(torch.int64)  # [B * S, 1]
-#         preds = preds.view(-1, preds.size(-1))  # [B * S, C]
-#
-#         preds_logsoft = F.log_softmax(preds, dim=1)  # 先softmax, 然后取log
-#         preds_softmax = torch.exp(preds_logsoft)  # softmax
-#         preds_softmax = preds_softmax.gather(1, labels)  # 这部分实现nll_loss ( crossempty = log_softmax + nll )
-#         preds_logsoft = preds_logsoft.gather(1, labels)
-#
-#         loss = -torch.mul(torch.pow((1 - preds_softmax), self.gamma),
-#                           preds_logsoft)  # torch.pow((1-preds_softmax), self.gamma) 为focal loss中 (1-pt)**γ
-#
-#         loss = loss.mean()
-#
-#         return loss
 
 class BinaryClassLoss(nn.Module):
     def __init__(self):
@@ -434,10 +382,8 @@ class BinaryClassLoss(nn.Module):
     def forward(self, pred, target):
 
         target = target.view(-1, 1)
-        # pred是模型的输出，通常是经过Sigmoid函数的结果
-        # target是二分类任务的真实标签，通常是0或1
         criterion = nn.BCELoss()
-        loss = criterion(pred, target.float())  # 将target转换为浮点数
+        loss = criterion(pred, target.float()) 
         return loss
 
 # # Training
@@ -453,7 +399,7 @@ valid_epochs_loss = []
 def val():
     TRAIN_BATCH_SIZE = 128
     TEST_BATCH_SIZE = 128
-    epochs=700
+    epochs=500
     model=MultiTaskModel(label_num_multi,label_num_binary)
     # optimizer=optim.SGD(model.parameters(),lr=1,momentum=0.8)
     optimizer = Ranger(model.parameters(), lr=learn_rating, weight_decay=weight_decay_rate, betas=(0.95, 0.999),eps=1e-6)
@@ -461,10 +407,6 @@ def val():
     test_data = TestbedDataset(root='./feng/test/', path='test_graph_dataset.csv')
     train_loader = DataLoader(train_data, batch_size=TRAIN_BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=TEST_BATCH_SIZE, shuffle=False)
-    print('train_data', train_data)
-    print('train_data_len', len(train_data))
-    print('test_data', test_data)
-    print('test_data_len', len(test_data))
 
     train_fn(model,optimizer,train_loader,test_loader,epochs)
 
