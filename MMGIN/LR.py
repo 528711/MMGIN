@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # # Import
 from chemprop.features import morgan_binary_features_generator
-# In[7]:
 
 
 from numpy.random import seed
@@ -56,32 +55,19 @@ torch.cuda.manual_seed_all(seed)
 warnings.filterwarnings("ignore")
 import os
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 使用GPU编号，可以根据需要更改
-
-
-# # Hyperparamters
-
-# In[8]:
+os.environ["CUDA_VISIBLE_DEVICES"] = "1" 
 
 
 file_path = "./"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-learn_rating = 1e-3
-weight_decay_rate = 1e-3
-patience = 7
-delta = 0
 label_num_multi = 5
 label_num_binary = 1
-# ### Early stopping
-
-# In[9]:
 
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_score,recall_score,f1_score,average_precision_score
-#没有数据增强
+
 train_epochs_loss = []
 valid_epochs_loss = []
 def val():
@@ -92,10 +78,6 @@ def val():
     test_data = TestbedDataset(root='./feng/test/', path='test_graph_dataset.csv')
     train_loader = DataLoader(train_data, batch_size=TRAIN_BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=TEST_BATCH_SIZE, shuffle=False)
-    print('train_data', train_data)
-    print('train_data_len', len(train_data))
-    print('test_data', test_data)
-    print('test_data_len', len(test_data))
 
     for i,batch_data in enumerate(train_loader):
         batch_data = batch_data.to(device)
@@ -112,29 +94,14 @@ def val():
             fp_list_train.append(fp)
         fp_list_train = torch.Tensor(fp_list_train)
         fp_list_train=np.array(fp_list_train)
-        # print('fp_list_train',fp_list_train)
-        # print('fp_list_train_shape', fp_list_train.shape)
 
         label_multi_train=batch_data.y_multi
         label_multi_train=label_multi_train.cpu()
         label_multi_train=label_multi_train.numpy()
-        # print('type_label_multi_train', type(label_multi_train))
-        # print('label_multi_train', label_multi_train)
-        # print('type_label_multi_train', type(label_multi_train))
-        # print('label_multi_train',label_multi_train.shape)
         label_bin_train = batch_data.y_bin
         label_bin_train = label_bin_train.cpu()
         label_bin_train = label_bin_train.numpy()
-        # print('label_multi_train_shape', label_multi_train.shape)
-        # print('label_bin_train_shape', label_bin_train.shape)
-
-        # #多分类knn
-        # knn_multi = KNeighborsClassifier()
-        # knn_multi.fit(fp_list_train, label_multi_train)
-        # # 二分类knn
-        # knn_bin = KNeighborsClassifier()
-        # knn_bin.fit(fp_list_train, label_bin_train)
-        #多分类RF
+        
         LR_multi = LogisticRegression(multi_class='multinomial',solver='lbfgs')
         LR_multi.fit(fp_list_train, label_multi_train)
 
@@ -160,8 +127,6 @@ def val():
             fp_list_test.append(fp)
         fp_list_test = torch.Tensor(fp_list_test)
         fp_list_test = np.array(fp_list_test)
-        # outputs_multi_test, outputs_bin_test = model(batch_data)
-        # print(data.y_multi.view(-1,1))
         label_multi_test = batch_data.y_multi
         label_multi_test = label_multi_test.cpu()
         label_multi_test = label_multi_test.numpy()
@@ -173,15 +138,12 @@ def val():
     y_score_multi = np.zeros((0, label_num_multi), dtype=float)
 
     pre_score_multi = LR_multi.predict_proba(fp_list_test)
-    print('pre_score_multi_shape', pre_score_multi.shape)
-    y_pred_multi = np.argmax(pre_score_multi, axis=1)  # pred_type_multi预测标签
+    y_pred_multi = np.argmax(pre_score_multi, axis=1) 
     y_score_multi = np.row_stack((y_score_multi, pre_score_multi))
     result_all, result_eve = evaluate(y_pred_multi, y_score_multi, label_multi_test, label_num_multi)
 
     pred_bin = LR_bin.predict(fp_list_test)
     accuracy_bin = metrics.accuracy_score(label_bin_test, pred_bin)
-    # aupr_bin = average_precision_score(label_bin_test, pred_bin)
-    # auc_bin = roc_auc_score(label_bin_test, pred_bin)
     f1_bin_micro = f1_score(label_bin_test, pred_bin, average='micro')
     f1_bin_macro = f1_score(label_bin_test, pred_bin, average='macro')
     precision_bin_micro = precision_score(label_bin_test, pred_bin, average='micro')
@@ -197,80 +159,21 @@ def val():
     print('precision_bin_macro', precision_bin_macro)
     print('recall_bin_micro', recall_bin_micro)
     print('recall_bin_macro', recall_bin_macro)
-    # print('输出结果', metrics.classification_report(label_bin_test, pred_bin))
     return result_all, result_eve
-    #
-    # pre_score_multi = np.zeros((0, label_num_multi), dtype=float)
-    # pre_score_binary = np.zeros((0, label_num_binary), dtype=float)
-    #
-    # outputs_multi = LR_multi.predict(fp_list_test)
-    # outputs_bin = LR_bin.predict(fp_list_test)
-    #
-    # pre_score_multi = np.vstack((pre_score_multi, F.softmax(outputs_multi).cpu().numpy()))
-    # pre_score_binary = np.vstack((pre_score_binary, torch.sigmoid(outputs_bin).cpu().numpy()))
-    # y_true_multi = np.hstack((y_true_multi, label_multi_test.cpu().numpy()))
-    # y_true_bin = np.hstack((y_true_bin, label_bin_test.cpu().numpy()))
-    # # 多分类任务的评价
-    # pred_type_multi = np.argmax(pre_score_multi, axis=1)  # pred_type_multi预测标签
-    # y_pred_multi = np.hstack((y_pred_multi, pred_type_multi))
-    # y_score_multi = np.row_stack((y_score_multi, pre_score_multi))
-    # result_all, result_eve = evaluate(y_pred_multi, y_score_multi, y_true_multi, label_num_multi)
-    # # 二分类
-    # pred_type_binary = (pre_score_binary > 0.5).astype(int)
-    # pred_type_binary = pred_type_binary.reshape(-1)
-    # accuracy = accuracy_score(y_true_bin, pred_type_binary)
-    # aupr = average_precision_score(y_true_bin, pre_score_binary)
-    # roc_auc = roc_auc_score(y_true_bin, pre_score_binary)
-    # f1 = f1_score(y_true_bin, pred_type_binary)
-    # print("Test Accuracy:roc_auc,aupr,f1", accuracy, roc_auc, aupr, f1)
-    #
-    #
-    #
-    # # 多分类任务的评价
-    # pred_type_multi = np.argmax(pre_score_multi, axis=1)  # pred_type_multi预测标签
-    # y_pred_multi = np.hstack((y_pred_multi, pred_type_multi))
-    # y_score_multi = np.row_stack((y_score_multi, pre_score_multi))
-    #
-    #
-    #
-    #
-    # pred_bin = LR_bin.predict(fp_list_test)
-    # accuracy_bin = metrics.accuracy_score(label_bin_test, pred_bin)
-    # # aupr_bin = average_precision_score(label_bin_test, pred_bin)
-    # # auc_bin = roc_auc_score(label_bin_test, pred_bin)
-    # f1_bin_micro = f1_score(label_bin_test, pred_bin, average='micro')
-    # f1_bin_macro = f1_score(label_bin_test, pred_bin, average='macro')
-    # precision_bin_micro = precision_score(label_bin_test, pred_bin, average='micro')
-    # precision_bin_macro = precision_score(label_bin_test, pred_bin, average='macro')
-    # recall_bin_micro = recall_score(label_bin_test, pred_bin, average='micro')
-    # recall_bin_macro = recall_score(label_bin_test, pred_bin, average='macro')
-    # print('二分类')
-    # print('输出结果', metrics.classification_report(label_bin_test, pred_bin))
-    # print('acc', accuracy_bin)
-    # print('f1_bin_micro', f1_bin_micro)
-    # print('f1_bin_macro', f1_bin_macro)
-    # print('precision_bin_micro', precision_bin_micro)
-    # print('precision_bin_macro', precision_bin_macro)
-    # print('recall_bin_micro', recall_bin_micro)
-    # print('recall_bin_macro', recall_bin_macro)
-    #
+   
 
-# ## Evaluation fn
 
-# In[ ]:
-
-# ## start training
-def roc_aupr_score(y_true, y_score, average="macro"):  # y_true  形状为(n_samples,n_classes)二维数组 样本数 类别书 二进制编码表示  y_score形状为(n_samples,n_classes)二维数组 表示预测的概率分数
-    def _binary_roc_aupr_score(y_true, y_score):  # macro 每个类别的分数平均值
+def roc_aupr_score(y_true, y_score, average="macro"): 
+    def _binary_roc_aupr_score(y_true, y_score): 
         precision, recall, pr_thresholds = precision_recall_curve(y_true, y_score)
         return auc(recall, precision)
 
     def _average_binary_score(
             binary_metric, y_true, y_score, average
     ):  # y_true= y_one_hot
-        if average == "binary":  # 仅对于二元分类问题
+        if average == "binary":
             return binary_metric(y_true, y_score)
-        if average == "micro":  # 所有样本的总分数
+        if average == "micro":
             y_true = y_true.ravel()
             y_score = y_score.ravel()
         if y_true.ndim == 1:
@@ -286,7 +189,7 @@ def roc_aupr_score(y_true, y_score, average="macro"):  # y_true  形状为(n_sam
         return np.average(score)
 
     return _average_binary_score(_binary_roc_aupr_score, y_true, y_score, average)
-# In[ ]:
+
 def evaluate(y_pred, y_score, y_true, label_num):
     all_eval_type = 11
     result_all = np.zeros((all_eval_type, 1), dtype=float)
