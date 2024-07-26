@@ -401,7 +401,6 @@ def val():
     TEST_BATCH_SIZE = 128
     epochs=500
     model=MultiTaskModel(label_num_multi,label_num_binary)
-    # optimizer=optim.SGD(model.parameters(),lr=1,momentum=0.8)
     optimizer = Ranger(model.parameters(), lr=learn_rating, weight_decay=weight_decay_rate, betas=(0.95, 0.999),eps=1e-6)
     train_data = TestbedDataset(root='./feng/train/', path='train_graph_dataset.csv')
     test_data = TestbedDataset(root='./feng/test/', path='test_graph_dataset.csv')
