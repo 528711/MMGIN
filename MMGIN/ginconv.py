@@ -431,10 +431,6 @@ def val():
     test_data = TestbedDataset(root='./feng/test/', path='test_graph_dataset.csv')
     train_loader = DataLoader(train_data, batch_size=TRAIN_BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=TEST_BATCH_SIZE, shuffle=False)
-    print('train_data', train_data)
-    print('train_data_len', len(train_data))
-    print('test_data', test_data)
-    print('test_data_len', len(test_data))
 
     result_all,result_eve=train_fn(model,optimizer,train_loader,test_loader,epochs)
     return result_all,result_eve
