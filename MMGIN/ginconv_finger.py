@@ -290,8 +290,6 @@ class MultiTaskModel(nn.Module):
 
         # 多分类任务的输出层
         self.fc_multi = nn.Sequential(
-            # nn.Linear(512, 256),
-            # nn.ReLU(),
             nn.Linear(256, 128),
             nn.ReLU(),
             nn.Linear(128, 64),
@@ -301,8 +299,6 @@ class MultiTaskModel(nn.Module):
 
         # 二分类任务的输出层
         self.fc_binary = nn.Sequential(
-            # nn.Linear(512, 256),
-            # nn.ReLU(),
             nn.Linear(256, 128),
             nn.ReLU(),
             nn.Linear(128, 64),
