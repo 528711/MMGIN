@@ -72,66 +72,6 @@ label_num_multi = 5
 label_num_binary = 1
 
 
-# In[9]:
-def evaluate(y_pred, y_score, y_true, label_num):
-    all_eval_type = 11
-    result_all = np.zeros((all_eval_type, 1), dtype=float)
-    each_eval_type = 6
-    result_eve = np.zeros((label_num, each_eval_type), dtype=float)
-    y_one_hot = label_binarize(y_true, classes=range(label_num))
-    pred_one_hot = label_binarize(y_pred, classes=range(label_num))
-    result_all[0] = accuracy_score(y_true, y_pred)
-    print('acc',result_all[0])
-    result_all[1] = roc_aupr_score(y_one_hot, y_score, average="micro")
-    print('aupr_micro', result_all[1])
-    result_all[2] = roc_aupr_score(y_one_hot, y_score, average="macro")
-    print('aupr_macro', result_all[2])
-    result_all[3] = roc_auc_score(y_one_hot, y_score, average="micro")
-    print('auc_micro', result_all[3])
-    result_all[4] = roc_auc_score(y_one_hot, y_score, average="macro")
-    print('auc_macro', result_all[4])
-    result_all[5] = f1_score(y_true, y_pred, average="micro")
-    print('f1_micro', result_all[5])
-    result_all[6] = f1_score(y_true, y_pred, average="macro")
-    print('f1_macro', result_all[6])
-    result_all[7] = precision_score(y_true, y_pred, average="micro")
-    print('precision_micro', result_all[6])
-    result_all[8] = precision_score(y_true, y_pred, average="macro")
-    print('precision_macro', result_all[7])
-    result_all[9] = recall_score(y_true, y_pred, average="micro")
-    print('recall_micro', result_all[9])
-    result_all[10] = recall_score(y_true, y_pred, average="macro")
-    print('recall_macro', result_all[10])
-    for i in range(label_num_multi):
-        result_eve[i, 0] = accuracy_score(
-            y_one_hot.take([i], axis=1).ravel(), pred_one_hot.take([i], axis=1).ravel()
-        )
-        result_eve[i, 1] = roc_aupr_score(
-            y_one_hot.take([i], axis=1).ravel(),
-            pred_one_hot.take([i], axis=1).ravel(),
-            average=None,
-        )
-        result_eve[i, 2] = roc_auc_score(
-            y_one_hot.take([i], axis=1).ravel(),
-            pred_one_hot.take([i], axis=1).ravel(),
-            average=None,
-        )
-        result_eve[i, 3] = f1_score(
-            y_one_hot.take([i], axis=1).ravel(),
-            pred_one_hot.take([i], axis=1).ravel(),
-            average="binary",
-        )
-        result_eve[i, 4] = precision_score(
-            y_one_hot.take([i], axis=1).ravel(),
-            pred_one_hot.take([i], axis=1).ravel(),
-            average="binary",
-        )
-        result_eve[i, 5] = recall_score(
-            y_one_hot.take([i], axis=1).ravel(),
-            pred_one_hot.take([i], axis=1).ravel(),
-            average="binary",
-        )
-    return [result_all, result_eve]
 
 def save_result(result_type, result):
     index = ['accuracy', 'aupr_micro', 'aupr_macro', 'auc_micro', 'auc_macro', 'f1_micro', 'f1_macro',
