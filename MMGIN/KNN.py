@@ -133,8 +133,12 @@ def val():
         for i, one in enumerate(smiles_test):
             fp = []
             mol = Chem.MolFromSmiles(one)
-            fp_morgan = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024)
-            fp.extend(fp_morgan)
+            fp_maccs = AllChem.GetMACCSKeysFingerprint(mol)
+            fp_phaErGfp = AllChem.GetErGFingerprint(mol, fuzzIncrement=0.3, maxPath=21, minPath=1)
+            fp_pubcfp = GetPubChemFPs(mol)
+            fp.extend(fp_maccs)
+            fp.extend(fp_phaErGfp)
+            fp.extend(fp_pubcfp)
             fp_list_test.append(fp)
         fp_list_test = torch.Tensor(fp_list_test)
         fp_list_test = np.array(fp_list_test)
