@@ -272,7 +272,7 @@ class MultiTaskModel(nn.Module):
     def __init__(self, num_classes_multi, num_classes_binary):
         super(MultiTaskModel, self).__init__()
 
-        # 创建GAT层
+      
         self.conv1 = GCNConv(in_channels=78, out_channels=2048)
         self.conv2 = GCNConv(in_channels=2048, out_channels=1024)
         self.conv3 = GCNConv(in_channels=1024, out_channels=256)
